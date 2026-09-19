@@ -286,8 +286,8 @@
       </div>
 
       <div class="btn-container">
-        <!-- ZIP Client İndirme Tuşu (Önemli: NEMESIS.zip dosyasını reponun ana dizinine koyun) -->
-        <button onclick="directDownload('./NEMESIS.zip', 'NEMESIS.zip', this)" class="btn btn-primary">
+        <!-- GitHub Releases En Son Sürüm Otomatik İndirme Tuşu -->
+        <button onclick="downloadLatestRelease('utkunoobie', 'NEMESIS', this)" class="btn btn-primary">
           <div class="btn-content">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span class="btn-text">DOWNLOAD CLIENT</span>
@@ -327,6 +327,71 @@
   </div>
 
   <script>
+    // GitHub Releases API ile en son yayınlanan ZIP dosyasını indir
+    async function downloadLatestRelease(owner, repo, btnElement) {
+      const textSpan = btnElement.querySelector('.btn-text');
+      const originalText = textSpan.innerText;
+
+      textSpan.innerText = 'FETCHING...';
+      btnElement.style.opacity = '0.7';
+      btnElement.style.pointerEvents = 'none';
+
+      try {
+        // 1. GitHub API'sinden en güncel release verisini çek
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+        const releaseResponse = await fetch(apiUrl);
+        
+        if (!releaseResponse.ok) {
+          throw new Error('Release bilgisi alınamadı. Lütfen GitHub repo ayarlarınızı ve Releases kısmını kontrol edin.');
+        }
+
+        const releaseData = await releaseResponse.json();
+
+        // 2. Yüklenen dosyalar (assets) arasından .zip olanını bul
+        const zipAsset = releaseData.assets.find(asset => asset.name.toLowerCase().endsWith('.zip'));
+
+        let downloadUrl = '';
+        let fileName = '';
+
+        if (zipAsset) {
+          downloadUrl = zipAsset.browser_download_url;
+          fileName = zipAsset.name;
+        } else if (releaseData.zipball_url) {
+          // Özel bir asset yüklenmemişse varsayılan GitHub kaynak kodu zip yolunu kullan
+          downloadUrl = releaseData.zipball_url;
+          fileName = `${repo}-latest.zip`;
+        } else {
+          throw new Error('Release içinde indirilebilir bir ZIP dosyası bulunamadı.');
+        }
+
+        // 3. Dosyayı indir ve indirmeyi tetikle
+        textSpan.innerText = 'DOWNLOADING...';
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error('ZIP dosyası indirilemedi.');
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'İndirme sırasında bir hata oluştu.');
+      } finally {
+        textSpan.innerText = originalText;
+        btnElement.style.opacity = '1';
+        btnElement.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Doğrudan bağlantı üzerinden dosya indirme (main.py vb.)
     async function directDownload(fileUrl, fileName, btnElement) {
       const textSpan = btnElement.querySelector('.btn-text');
       const originalText = textSpan.innerText;
