@@ -286,23 +286,23 @@
       </div>
 
       <div class="btn-container">
-        <!-- ZIP Client İndirme Tuşu -->
-        <a href="https://github.com/utkunoobie/NEMESIS/releases/download/v1.0/NEMESIS.zip" target="_blank" class="btn btn-primary">
+        <!-- ZIP Client İndirme Tuşu (Önemli: NEMESIS.zip dosyasını reponun ana dizinine koyun) -->
+        <button onclick="directDownload('./NEMESIS.zip', 'NEMESIS.zip', this)" class="btn btn-primary">
           <div class="btn-content">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span class="btn-text">DOWNLOAD CLIENT</span>
           </div>
           <span class="btn-tag">ZIP</span>
-        </a>
+        </button>
 
         <!-- Python Kaynak Kodu İndirme Tuşu -->
-        <a href="https://github.com/utkunoobie/NEMESIS/raw/main/main.py" download class="btn btn-emerald">
+        <button onclick="directDownload('https://raw.githubusercontent.com/utkunoobie/NEMESIS/main/main.py', 'main.py', this)" class="btn btn-emerald">
           <div class="btn-content">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
             <span class="btn-text">SOURCE CODE</span>
           </div>
           <span class="btn-tag">PY</span>
-        </a>
+        </button>
 
         <!-- GitHub Yönlendirme Tuşu -->
         <a href="https://github.com/utkunoobie/NEMESIS" target="_blank" class="btn btn-outline">
@@ -325,6 +325,41 @@
 
     </div>
   </div>
+
+  <script>
+    async function directDownload(fileUrl, fileName, btnElement) {
+      const textSpan = btnElement.querySelector('.btn-text');
+      const originalText = textSpan.innerText;
+
+      textSpan.innerText = 'DOWNLOADING...';
+      btnElement.style.opacity = '0.7';
+      btnElement.style.pointerEvents = 'none';
+
+      try {
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Dosya çekilemedi');
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error(err);
+        alert('İndirme hatası! Dosyanın sunucuda var olduğundan ve doğru konumda bulunduğundan emin olun.');
+      } finally {
+        textSpan.innerText = originalText;
+        btnElement.style.opacity = '1';
+        btnElement.style.pointerEvents = 'auto';
+      }
+    }
+  </script>
 
 </body>
 </html>
