@@ -1,10 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────
-#  NEMESIS // AssaultCube Toolkit (Enhanced Fast Fire)
-#  - ENTITIES list updates in place (no more flicker)
-#  - Minimap math re-derived from scratch (correct rotation)
-#  - NEMESIS badge top-right of screen
-#  - Stealth Mode embeds minimap in main window
-# ─────────────────────────────────────────────────────────────────────────
 import tkinter as tk
 from tkinter import messagebox
 import time
