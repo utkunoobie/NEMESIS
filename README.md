@@ -2,8 +2,6 @@ Hey there Welcome to my tutorial abt how to use the client simply just open Assa
 
 Have fun! :D
 
-WARNING: Please dont take NEMESIS.exe out from the folder or else it will just break idk
-
 ALSO if you wanna support me you can sub 2 me on YouTube my username is @utkunoob i also made an undertale mod if your interested its called "A Speedrunners Dream" on gamebanana 
 
 have fun :D
