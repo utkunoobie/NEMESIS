@@ -109,6 +109,10 @@ class GameMemory:
         self.entity_list_ptr = None
         self.player_count_ptr = None
         self.fov_ptr = None
+        # No-recoil state
+        self.recoil_addr = None
+        self.recoil_original_bytes = None
+        self.recoil_patched = False
 
     def attach(self):
         if pymem is None:
@@ -122,6 +126,7 @@ class GameMemory:
             self.entity_list_ptr = self.base + 0x18AC04
             self.player_count_ptr = self.base + 0x18AC0C
             self.fov_ptr = self.base + 0x18A7CC
+            self.recoil_addr = self.base + 0xC8BA0
             return True
         except Exception as e:
             print(f"Attach error: {e}")
@@ -197,6 +202,29 @@ class GameMemory:
                 except Exception:
                     pass
         return True
+
+    def set_no_recoil(self, enable=True):
+        if not self.recoil_addr:
+            return False
+        try:
+            if enable:
+                if not self.recoil_patched:
+                    self.recoil_original_bytes = self.pm.read_bytes(
+                        self.recoil_addr, 3)
+                    # \xC2\x08\x00 = "ret 8" → forces the recoil function to
+                    # immediately return, disabling recoil entirely
+                    self.pm.write_bytes(self.recoil_addr, b"\xC2\x08\x00", 3)
+                    self.recoil_patched = True
+                return True
+            else:
+                if self.recoil_patched and self.recoil_original_bytes:
+                    self.pm.write_bytes(self.recoil_addr,
+                                        self.recoil_original_bytes, 3)
+                    self.recoil_patched = False
+                return True
+        except Exception as e:
+            print(f"No recoil error: {e}")
+            return False
 
     def get_player_pos(self, player_ptr):
         try:
@@ -1395,6 +1423,8 @@ class NemesisApp:
                            self.toggle_unlimited_grenade, "Unlimited Grenade")
         self.create_toggle(card, "Fast Fire", "fast_fire_var",
                            self.toggle_fast_fire, "Fast Fire")
+        self.create_toggle(card, "No Recoil", "no_recoil_var",
+                           self.toggle_no_recoil, "No Recoil")
         self.create_toggle(card, "Minimap Overlay", "minimap_var",
                            self.toggle_minimap, "Minimap")
         self.create_toggle(card, "Stealth Mode", "stealth_mode_var",
@@ -1611,6 +1641,16 @@ class NemesisApp:
             self.gm.set_fast_fire(self.fast_fire_var.get())
             self.log(f"Fast Fire: {self.fast_fire_var.get()}")
 
+    def toggle_no_recoil(self):
+        if not self.gm:
+            return
+        enabled = self.no_recoil_var.get()
+        if self.gm.set_no_recoil(enabled):
+            self.log(f"No Recoil: {enabled}", ok=enabled)
+        else:
+            self.log("No Recoil patch failed", error=True)
+            self.set_toggle_state("no_recoil_var", False)
+
     def toggle_minimap(self):
         enabled = self.minimap_var.get()
         if self.minimap and hasattr(self.minimap, "root"):
@@ -1650,6 +1690,10 @@ class NemesisApp:
         if hasattr(self, "fast_fire_var") and self.fast_fire_var.get():
             self.gm.set_fast_fire(True)
 
+        if hasattr(self, "no_recoil_var") and self.no_recoil_var.get():
+            if not self.gm.recoil_patched:
+                self.gm.set_no_recoil(True)
+
         hp = self.gm.read_health()
         ar = self.gm.read_armor()
         if hasattr(self, "lbl_live_hp"): self.lbl_live_hp.config(text=str(hp))
@@ -1681,6 +1725,8 @@ class NemesisApp:
 
     def on_close(self):
         try:
+            if self.gm and self.gm.recoil_patched:
+                self.gm.set_no_recoil(False)
             if self.hud: self.hud.destroy()
             if self.minimap: self.minimap.destroy()
             if self.badge: self.badge.destroy()
